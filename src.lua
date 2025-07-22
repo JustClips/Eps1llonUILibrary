@@ -1,6 +1,10 @@
 local Eps1llonUI = {}
 Eps1llonUI.__index = Eps1llonUI
 
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
 local function createInstance(class, props)
     local inst = Instance.new(class)
     for k, v in pairs(props or {}) do
@@ -13,31 +17,29 @@ local function lerp(a, b, t)
     return a + (b - a) * t
 end
 
-local function smoothDrag(dragBar, mainFrame)
+-- Full window drag
+local function makeDraggable(frame)
     local dragging, dragInput, startPos, startFramePos
-    local targetPos = mainFrame.Position
-    local uis = game:GetService("UserInputService")
-    local runService = game:GetService("RunService")
+    local targetPos = frame.Position
+    frame.Active = true
+    frame.Selectable = true
 
-    dragBar.Active = true
-    dragBar.Selectable = true
-
-    dragBar.InputBegan:Connect(function(input)
+    frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             startPos = input.Position
-            startFramePos = mainFrame.Position
+            startFramePos = frame.Position
             dragInput = input
         end
     end)
 
-    dragBar.InputEnded:Connect(function(input)
+    frame.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
 
-    dragBar.InputChanged:Connect(function(input)
+    frame.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - startPos
             targetPos = UDim2.new(
@@ -49,10 +51,10 @@ local function smoothDrag(dragBar, mainFrame)
         end
     end)
 
-    runService.RenderStepped:Connect(function()
-        if mainFrame.Position ~= targetPos then
-            local current = mainFrame.Position
-            mainFrame.Position = UDim2.new(
+    RunService.RenderStepped:Connect(function()
+        if frame.Position ~= targetPos then
+            local current = frame.Position
+            frame.Position = UDim2.new(
                 lerp(current.X.Scale, targetPos.X.Scale, 0.18),
                 lerp(current.X.Offset, targetPos.X.Offset, 0.18),
                 lerp(current.Y.Scale, targetPos.Y.Scale, 0.18),
@@ -103,7 +105,8 @@ function Eps1llonUI:CreateWindow(props)
         Parent = topBar
     })
 
-    smoothDrag(topBar, frame)
+    -- Make the entire window draggable
+    makeDraggable(frame)
 
     selfWindow._nextY = 54
     selfWindow._frame = frame
@@ -128,12 +131,6 @@ function Eps1llonUI:AddLabel(props)
     return label
 end
 
--- AddSlider(props)
--- props: min, max, default, width, barHeight, valueFont, labelFont, onChange
--- If width is set, the slider is that wide (in px), else fills most of window
--- If barHeight is set, the slider bar is that tall (in px), else default (32)
--- valueFont is font for the value (left side in slider bar)
--- labelFont is font for the label left of slider bar (optional)
 function Eps1llonUI:AddSlider(props)
     local min, max = props.min or 0, props.max or 100
     local value = props.default or min
@@ -214,7 +211,7 @@ function Eps1llonUI:AddSlider(props)
     })
 
     -- Animate fill
-    local run = game:GetService("RunService")
+    local run = RunService
     local targetFill = (value-min)/(max-min)
     local dragging = false
 
@@ -237,7 +234,7 @@ function Eps1llonUI:AddSlider(props)
             dragging = false
         end
     end)
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
+    UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             updateValueFromX(input.Position.X)
         end
@@ -254,8 +251,6 @@ function Eps1llonUI:AddSlider(props)
     return sliderContainer
 end
 
--- AddToggle({default, onChange, width, barHeight})
--- Toggle: pill background, circle knob, supports callback
 function Eps1llonUI:AddToggle(props)
     local containerHeight = (props.barHeight or 32) + 10
     local containerPad = 36
@@ -334,6 +329,167 @@ function Eps1llonUI:AddToggle(props)
     self._nextY = self._nextY + containerHeight + 10
     table.insert(self.elements, toggleContainer)
     return toggleContainer
+end
+
+-- InputBox (modern, animated)
+function Eps1llonUI:AddInput(props)
+    local containerPad = 36
+    local boxWidth = tonumber(props.width) or 260
+    local boxHeight = 36
+    local y = self._nextY
+
+    local boxFrame = createInstance("Frame", {
+        Name = "InputContainer",
+        Size = UDim2.new(0, boxWidth, 0, boxHeight),
+        Position = UDim2.new(0.5, -boxWidth/2, 0, y),
+        BackgroundColor3 = Color3.fromRGB(28,32,45),
+        BorderSizePixel = 0,
+        Parent = self._frame
+    })
+    local boxCorner = Instance.new("UICorner", boxFrame)
+    boxCorner.CornerRadius = UDim.new(0, 10)
+
+    local input = createInstance("TextBox", {
+        Name = "InputBox",
+        Size = UDim2.new(1, -16, 1, -12),
+        Position = UDim2.new(0, 8, 0, 6),
+        BackgroundColor3 = Color3.fromRGB(46, 51, 70),
+        BorderSizePixel = 0,
+        Font = props.font or Enum.Font.SourceSansSemibold,
+        TextColor3 = Color3.new(1,1,1),
+        TextSize = 17,
+        PlaceholderColor3 = Color3.fromRGB(150,150,160),
+        PlaceholderText = props.placeholder or "Type here...",
+        Text = props.default or "",
+        Parent = boxFrame
+    })
+    local inputCorner = Instance.new("UICorner", input)
+    inputCorner.CornerRadius = UDim.new(0, 8)
+
+    -- Animation: on focus
+    input.Focused:Connect(function()
+        TweenService:Create(input, TweenInfo.new(0.18), {BackgroundColor3 = Color3.fromRGB(0, 145, 255)}):Play()
+    end)
+    input.FocusLost:Connect(function(enter)
+        TweenService:Create(input, TweenInfo.new(0.18), {BackgroundColor3 = Color3.fromRGB(46, 51, 70)}):Play()
+        if props.onChange then
+            props.onChange(input.Text, enter)
+        end
+    end)
+    input:GetPropertyChangedSignal("Text"):Connect(function()
+        if props.onTextChanged then
+            props.onTextChanged(input.Text)
+        end
+    end)
+
+    self._nextY = self._nextY + boxHeight + 14
+    table.insert(self.elements, boxFrame)
+    return boxFrame
+end
+
+-- Dropdown menu (animated)
+function Eps1llonUI:AddDropdown(props)
+    local options = props.options or {}
+    local containerPad = 36
+    local boxWidth = tonumber(props.width) or 220
+    local boxHeight = 36
+    local y = self._nextY
+
+    local boxFrame = createInstance("Frame", {
+        Name = "DropdownContainer",
+        Size = UDim2.new(0, boxWidth, 0, boxHeight),
+        Position = UDim2.new(0.5, -boxWidth/2, 0, y),
+        BackgroundColor3 = Color3.fromRGB(28,32,45),
+        BorderSizePixel = 0,
+        Parent = self._frame,
+        ClipsDescendants = true
+    })
+    local boxCorner = Instance.new("UICorner", boxFrame)
+    boxCorner.CornerRadius = UDim.new(0, 10)
+
+    local selected = props.default or (options[1] or "")
+    local dropdown = createInstance("TextButton", {
+        Name = "DropdownButton",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = selected,
+        TextColor3 = Color3.new(1,1,1),
+        Font = props.font or Enum.Font.SourceSansBold,
+        TextSize = 16,
+        Parent = boxFrame,
+        AutoButtonColor = false
+    })
+
+    -- Arrow
+    local arrow = createInstance("TextLabel", {
+        Size = UDim2.new(0, 22, 0, boxHeight),
+        Position = UDim2.new(1, -28, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "▼",
+        TextColor3 = Color3.fromRGB(170,170,180),
+        Font = Enum.Font.Gotham,
+        TextSize = 16,
+        Parent = boxFrame
+    })
+
+    -- Dropdown list
+    local listFrame = createInstance("Frame", {
+        Name = "DropdownList",
+        Size = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(32,36,50),
+        BorderSizePixel = 0,
+        Parent = boxFrame,
+        ClipsDescendants = true
+    })
+    local listCorner = Instance.new("UICorner", listFrame)
+    listCorner.CornerRadius = UDim.new(0, 10)
+
+    local layout = Instance.new("UIListLayout", listFrame)
+    layout.Padding = UDim.new(0, 0)
+
+    local open = false
+    local buttonHeight = 32
+
+    local function toggleDropdown()
+        open = not open
+        if open then
+            TweenService:Create(boxFrame, TweenInfo.new(0.18), {Size = UDim2.new(0, boxWidth, 0, boxHeight + #options*buttonHeight)}):Play()
+            TweenService:Create(listFrame, TweenInfo.new(0.18), {Size = UDim2.new(1, 0, 0, #options*buttonHeight)}):Play()
+            TweenService:Create(arrow, TweenInfo.new(0.18), {Rotation = 180}):Play()
+        else
+            TweenService:Create(boxFrame, TweenInfo.new(0.18), {Size = UDim2.new(0, boxWidth, 0, boxHeight)}):Play()
+            TweenService:Create(listFrame, TweenInfo.new(0.18), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+            TweenService:Create(arrow, TweenInfo.new(0.18), {Rotation = 0}):Play()
+        end
+    end
+
+    dropdown.MouseButton1Click:Connect(toggleDropdown)
+
+    for i, option in ipairs(options) do
+        local btn = createInstance("TextButton", {
+            Size = UDim2.new(1, 0, 0, buttonHeight),
+            BackgroundTransparency = 1,
+            Text = tostring(option),
+            TextColor3 = Color3.new(1,1,1),
+            Font = props.font or Enum.Font.SourceSans,
+            TextSize = 16,
+            Parent = listFrame,
+            AutoButtonColor = true
+        })
+        btn.MouseButton1Click:Connect(function()
+            selected = option
+            dropdown.Text = tostring(option)
+            toggleDropdown()
+            if props.onChange then
+                props.onChange(option)
+            end
+        end)
+    end
+
+    self._nextY = self._nextY + boxHeight + 18
+    table.insert(self.elements, boxFrame)
+    return boxFrame
 end
 
 return setmetatable({}, Eps1llonUI)
