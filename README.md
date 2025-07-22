@@ -1,44 +1,42 @@
 # Eps1llonUILibrary
 
-A modular Roblox executor UI library with easy-to-use, scriptable components.
+A modern, animated UI library for Roblox executors with a clean, outlined design and smooth interactions.
 
 ## Features
 
-- Window/frame creation (draggable)
-- Button, label, toggle, slider, textbox, dropdown
-- Notification/popup support
-- Simple API — all components are added by method
-- Easy to copy into any script executor
+- Draggable window (smooth animation)
+- Sidebar for navigation (coming soon)
+- Sectioned content area
+- Animated slider and dropdown
+- Easy-to-use API for scripts
 
 ## Example Usage
 
 ```lua
 local Eps1llonUI = require(path.to.Eps1llonUI)
 
-local win = Eps1llonUI:CreateWindow({title = "My Executor"})
+local win = Eps1llonUI:CreateWindow({title = "Eps1llon Hub"})
 
 win:AddLabel({text = "Welcome!"})
 
-win:AddButton({text = "Print", onClick = function()
-    print("Button pressed!")
-    win:Notify({text = "Hello, world!"})
-end})
+win:AddSlider({
+    text = "Volume",
+    min = 0,
+    max = 100,
+    default = 50,
+    onChange = function(val)
+        print("Slider:", val)
+    end
+})
 
-win:AddToggle({text = "Enable Stuff", default = false, onToggle = function(val)
-    print("Toggled:", val)
-end})
-
-win:AddSlider({text = "Volume", min = 0, max = 100, default = 50, onChange = function(val)
-    print("Slider:", val)
-end})
-
-win:AddTextbox({placeholder = "Type here", onEnter = function(txt)
-    print("You typed:", txt)
-end})
-
-win:AddDropdown({choices = {"A", "B", "C"}, default = "B", onSelect = function(val)
-    print("Dropdown picked:", val)
-end})
+win:AddDropdown({
+    text = "Theme",
+    choices = {"Blue", "Red", "Green"},
+    default = "Blue",
+    onSelect = function(val)
+        print("Theme selected:", val)
+    end
+})
 ```
 
 ---
