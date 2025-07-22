@@ -75,8 +75,8 @@ function Eps1llonUI:CreateWindow(props)
     local screenGui = createInstance("ScreenGui", {Name = selfWindow.title.."GUI", ResetOnSpawn = false, Parent = game:GetService("CoreGui")})
     local frame = createInstance("Frame", {
         Name = "MainFrame",
-        Size = UDim2.new(0, 450, 0, 450),
-        Position = UDim2.new(0.5, -225, 0.5, -225),
+        Size = UDim2.new(0, 450, 0, 490),
+        Position = UDim2.new(0.5, -225, 0.5, -245),
         BackgroundColor3 = Color3.fromRGB(40, 40, 40),
         BorderSizePixel = 0,
         Parent = screenGui
@@ -105,7 +105,6 @@ function Eps1llonUI:CreateWindow(props)
         Parent = topBar
     })
 
-    -- Make the entire window draggable
     makeDraggable(frame)
 
     selfWindow._nextY = 54
@@ -143,7 +142,6 @@ function Eps1llonUI:AddSlider(props)
     local customWidth = tonumber(props.width)
     local barHeight = tonumber(props.barHeight) or defaultBarHeight
 
-    -- Container for slider and (optionally) a label on the left
     local sliderContainer = createInstance("Frame", {
         Name = "SliderContainer",
         Size = customWidth and UDim2.new(0, customWidth, 0, containerHeight) or UDim2.new(1, -containerPad*2, 0, containerHeight),
@@ -156,9 +154,8 @@ function Eps1llonUI:AddSlider(props)
     local containerCorner = Instance.new("UICorner", sliderContainer)
     containerCorner.CornerRadius = UDim.new(0, 10)
 
-    -- Label on the left (optional)
     if props.leftLabel then
-        local leftLabel = createInstance("TextLabel", {
+        createInstance("TextLabel", {
             Name = "LeftLabel",
             Size = UDim2.new(0, 66, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
@@ -172,7 +169,6 @@ function Eps1llonUI:AddSlider(props)
         })
     end
 
-    -- The slider bar inside the container, with space on left for value
     local valueBoxWidth = 54
     local sliderBar = createInstance("Frame", {
         Position = UDim2.new(0, barPadX + valueBoxWidth, 0.5, -barHeight/2),
@@ -184,7 +180,6 @@ function Eps1llonUI:AddSlider(props)
     local barCorner = Instance.new("UICorner", sliderBar)
     barCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Fill (progress)
     local fill = createInstance("Frame", {
         Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new((value-min)/(max-min), 0, 1, 0),
@@ -196,7 +191,6 @@ function Eps1llonUI:AddSlider(props)
     local fillCorner = Instance.new("UICorner", fill)
     fillCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Value label at the left of the slider bar, always visible, fixed position
     local valueLabel = createInstance("TextLabel", {
         Name = "SliderValue",
         Size = UDim2.new(0, valueBoxWidth, 1, 0),
@@ -210,8 +204,6 @@ function Eps1llonUI:AddSlider(props)
         TextXAlignment = Enum.TextXAlignment.Center
     })
 
-    -- Animate fill
-    local run = RunService
     local targetFill = (value-min)/(max-min)
     local dragging = false
 
@@ -239,7 +231,7 @@ function Eps1llonUI:AddSlider(props)
             updateValueFromX(input.Position.X)
         end
     end)
-    run.RenderStepped:Connect(function()
+    RunService.RenderStepped:Connect(function()
         local cur = fill.Size.X.Scale
         if math.abs(cur - targetFill) > 0.001 then
             fill.Size = UDim2.new(lerp(cur, targetFill, 0.18), 0, 1, 0)
@@ -253,10 +245,8 @@ end
 
 function Eps1llonUI:AddToggle(props)
     local containerHeight = (props.barHeight or 32) + 10
-    local containerPad = 36
     local customWidth = tonumber(props.width or 64)
 
-    -- Container for toggle (centered)
     local toggleContainer = createInstance("Frame", {
         Name = "ToggleContainer",
         Size = UDim2.new(0, customWidth, 0, containerHeight),
@@ -266,7 +256,6 @@ function Eps1llonUI:AddToggle(props)
         Parent = self._frame
     })
 
-    -- Toggle background (pill)
     local barHeight = props.barHeight or 32
     local toggleBar = createInstance("Frame", {
         Name = "ToggleBar",
@@ -279,7 +268,6 @@ function Eps1llonUI:AddToggle(props)
     local barCorner = Instance.new("UICorner", toggleBar)
     barCorner.CornerRadius = UDim.new(1, 0)
 
-    -- Knob
     local knobSize = barHeight - 6
     local knob = createInstance("Frame", {
         Name = "ToggleKnob",
@@ -292,7 +280,6 @@ function Eps1llonUI:AddToggle(props)
     local knobCorner = Instance.new("UICorner", knob)
     knobCorner.CornerRadius = UDim.new(1, 0)
 
-    -- State
     local state = props.default and true or false
     local function updateToggle()
         if state then
@@ -331,17 +318,14 @@ function Eps1llonUI:AddToggle(props)
     return toggleContainer
 end
 
--- InputBox (modern, animated)
 function Eps1llonUI:AddInput(props)
-    local containerPad = 36
     local boxWidth = tonumber(props.width) or 260
     local boxHeight = 36
-    local y = self._nextY
 
     local boxFrame = createInstance("Frame", {
         Name = "InputContainer",
         Size = UDim2.new(0, boxWidth, 0, boxHeight),
-        Position = UDim2.new(0.5, -boxWidth/2, 0, y),
+        Position = UDim2.new(0.5, -boxWidth/2, 0, self._nextY),
         BackgroundColor3 = Color3.fromRGB(28,32,45),
         BorderSizePixel = 0,
         Parent = self._frame
@@ -366,7 +350,6 @@ function Eps1llonUI:AddInput(props)
     local inputCorner = Instance.new("UICorner", input)
     inputCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Animation: on focus
     input.Focused:Connect(function()
         TweenService:Create(input, TweenInfo.new(0.18), {BackgroundColor3 = Color3.fromRGB(0, 145, 255)}):Play()
     end)
@@ -387,18 +370,15 @@ function Eps1llonUI:AddInput(props)
     return boxFrame
 end
 
--- Dropdown menu (animated)
 function Eps1llonUI:AddDropdown(props)
     local options = props.options or {}
-    local containerPad = 36
     local boxWidth = tonumber(props.width) or 220
     local boxHeight = 36
-    local y = self._nextY
 
     local boxFrame = createInstance("Frame", {
         Name = "DropdownContainer",
         Size = UDim2.new(0, boxWidth, 0, boxHeight),
-        Position = UDim2.new(0.5, -boxWidth/2, 0, y),
+        Position = UDim2.new(0.5, -boxWidth/2, 0, self._nextY),
         BackgroundColor3 = Color3.fromRGB(28,32,45),
         BorderSizePixel = 0,
         Parent = self._frame,
@@ -420,7 +400,6 @@ function Eps1llonUI:AddDropdown(props)
         AutoButtonColor = false
     })
 
-    -- Arrow
     local arrow = createInstance("TextLabel", {
         Size = UDim2.new(0, 22, 0, boxHeight),
         Position = UDim2.new(1, -28, 0, 0),
@@ -432,7 +411,6 @@ function Eps1llonUI:AddDropdown(props)
         Parent = boxFrame
     })
 
-    -- Dropdown list
     local listFrame = createInstance("Frame", {
         Name = "DropdownList",
         Size = UDim2.new(1, 0, 0, 0),
