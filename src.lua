@@ -10,6 +10,60 @@ local function createInstance(class, props)
     return inst
 end
 
+local function lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+-- Smooth Drag (lerp animation)
+local function smoothDrag(frame)
+    local dragging, dragInput, startPos, startFramePos
+    local targetPos = frame.Position
+    local uis = game:GetService("UserInputService")
+    local runService = game:GetService("RunService")
+
+    frame.Active = true
+    frame.Selectable = true
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            startPos = input.Position
+            startFramePos = frame.Position
+            dragInput = input
+        end
+    end)
+
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - startPos
+            targetPos = UDim2.new(
+                startFramePos.X.Scale,
+                startFramePos.X.Offset + delta.X,
+                startFramePos.Y.Scale,
+                startFramePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    runService.RenderStepped:Connect(function()
+        if frame.Position ~= targetPos then
+            local current = frame.Position
+            frame.Position = UDim2.new(
+                lerp(current.X.Scale, targetPos.X.Scale, 0.18),
+                lerp(current.X.Offset, targetPos.X.Offset, 0.18),
+                lerp(current.Y.Scale, targetPos.Y.Scale, 0.18),
+                lerp(current.Y.Offset, targetPos.Y.Offset, 0.18)
+            )
+        end
+    end)
+end
+
 -- Window
 function Eps1llonUI:CreateWindow(props)
     props = props or {}
@@ -19,34 +73,39 @@ function Eps1llonUI:CreateWindow(props)
         _frame = nil
     }, {__index = self})
 
-    -- Create the main frame
+    -- Create the main frame (wider than a square)
     local screenGui = createInstance("ScreenGui", {Name = selfWindow.title.."GUI", ResetOnSpawn = false, Parent = game:GetService("CoreGui")})
     local frame = createInstance("Frame", {
         Name = "MainFrame",
-        Size = UDim2.new(0, 400, 0, 300),
-        Position = UDim2.new(0.5, -200, 0.5, -150),
+        Size = UDim2.new(0, 420, 0, 340),
+        Position = UDim2.new(0.5, -210, 0.5, -170),
         BackgroundColor3 = Color3.fromRGB(40, 40, 40),
         BorderSizePixel = 0,
-        Parent = screenGui,
-        Active = true,
-        Draggable = true
+        Parent = screenGui
     })
-    selfWindow._frame = frame
-
-    -- Title bar
-    local titleBar = createInstance("TextLabel", {
-        Name = "TitleBar",
-        Size = UDim2.new(1, 0, 0, 30),
+    -- Add smooth drag to window (top 32px)
+    local topBar = createInstance("Frame", {
+        Name = "TopBar",
+        Size = UDim2.new(1, 0, 0, 32),
         BackgroundColor3 = Color3.fromRGB(30,30,30),
+        BorderSizePixel = 0,
+        Parent = frame
+    })
+    smoothDrag(topBar)
+    -- Title
+    createInstance("TextLabel", {
+        Name = "TitleBar",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
         Text = selfWindow.title,
         TextColor3 = Color3.new(1,1,1),
         Font = Enum.Font.SourceSansBold,
         TextSize = 20,
-        Parent = frame
+        Parent = topBar
     })
-
     selfWindow._nextY = 35
     selfWindow._frame = frame
+    selfWindow._screenGui = screenGui
     return selfWindow
 end
 
@@ -113,7 +172,7 @@ function Eps1llonUI:AddToggle(props)
     return toggleBtn
 end
 
--- Add a slider
+-- Add a slider (with smooth thumb animation)
 function Eps1llonUI:AddSlider(props)
     local min, max = props.min or 0, props.max or 100
     local value = props.default or min
@@ -146,23 +205,44 @@ function Eps1llonUI:AddSlider(props)
         Text = "",
         Parent = sliderBar
     })
+
+    -- Animate slider thumb
+    local targetRel = (value-min)/(max-min)
+    local run = game:GetService("RunService")
+    local dragging = false
+
+    local function updatePos()
+        sliderBtn.Position = UDim2.new(targetRel, -8, 0, -3)
+    end
+
     sliderBtn.MouseButton1Down:Connect(function()
-        local userInput = game:GetService("UserInputService")
-        local conn; conn = userInput.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragging = true
+        local uis = game:GetService("UserInputService")
+        local conn; conn = uis.InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
                 local relPos = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X)/sliderBar.AbsoluteSize.X, 0, 1)
+                targetRel = relPos
                 value = math.floor(min + (max-min)*relPos + 0.5)
                 label.Text = (props.text or "Slider") .. ": " .. tostring(value)
-                sliderBtn.Position = UDim2.new(relPos, -8, 0, -3)
                 if props.onChange then props.onChange(value) end
             end
         end)
-        userInput.InputEnded:Connect(function(input)
+        uis.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                conn:Disconnect()
+                dragging = false
+                if conn then conn:Disconnect() end
             end
         end)
     end)
+
+    run.RenderStepped:Connect(function()
+        -- Lerp the slider thumb
+        local cur = sliderBtn.Position.X.Scale
+        if math.abs(cur - targetRel) > 0.001 then
+            sliderBtn.Position = UDim2.new(lerp(cur, targetRel, 0.18), -8, 0, -3)
+        end
+    end)
+
     self._nextY = self._nextY + 40
     table.insert(self.elements, sliderFrame)
     return sliderFrame
@@ -190,19 +270,21 @@ function Eps1llonUI:AddTextbox(props)
     return box
 end
 
--- Add a dropdown
+-- Add a dropdown (with animated open/close)
 function Eps1llonUI:AddDropdown(props)
     local choices = props.choices or {}
     local selected = props.default or choices[1] or ""
+    local open = false
     local dropdownFrame = createInstance("Frame", {
         Name = "Dropdown",
         Size = UDim2.new(1, -20, 0, 30),
         Position = UDim2.new(0, 10, 0, self._nextY),
         BackgroundColor3 = Color3.fromRGB(60,60,60),
+        ClipsDescendants = true,
         Parent = self._frame
     })
     local button = createInstance("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 30),
         BackgroundTransparency = 1,
         Text = selected,
         TextColor3 = Color3.new(1,1,1),
@@ -211,29 +293,57 @@ function Eps1llonUI:AddDropdown(props)
         Parent = dropdownFrame
     })
 
+    local optsFrame = createInstance("Frame", {
+        Name = "DropdownOpts",
+        Size = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(0,0,0,30),
+        BackgroundTransparency = 1,
+        Parent = dropdownFrame
+    })
+
+    local run = game:GetService("RunService")
+    local expandedHeight = #choices * 26
+
     button.MouseButton1Click:Connect(function()
-        for _, v in ipairs(dropdownFrame:GetChildren()) do
-            if v:IsA("TextButton") and v ~= button then v:Destroy() end
+        open = not open
+    end)
+
+    -- Options
+    local optionButtons = {}
+    for i, choice in ipairs(choices) do
+        local opt = createInstance("TextButton", {
+            Size = UDim2.new(1, 0, 0, 24),
+            Position = UDim2.new(0, 0, 0, (i-1)*26),
+            BackgroundColor3 = Color3.fromRGB(70,70,70),
+            Text = choice,
+            TextColor3 = Color3.new(1,1,1),
+            Font = Enum.Font.SourceSans,
+            TextSize = 16,
+            Parent = optsFrame,
+            Visible = false
+        })
+        opt.MouseButton1Click:Connect(function()
+            selected = choice
+            button.Text = selected
+            if props.onSelect then props.onSelect(selected) end
+            open = false
+        end)
+        optionButtons[i] = opt
+    end
+
+    -- Animate open/close
+    run.RenderStepped:Connect(function()
+        local cur = optsFrame.Size.Y.Offset
+        local target = open and expandedHeight or 0
+        if math.abs(cur - target) > 1 then
+            local newY = lerp(cur, target, 0.18)
+            optsFrame.Size = UDim2.new(1, 0, 0, newY)
+        else
+            optsFrame.Size = UDim2.new(1, 0, 0, target)
         end
-        for i, choice in ipairs(choices) do
-            local opt = createInstance("TextButton", {
-                Size = UDim2.new(1, 0, 0, 25),
-                Position = UDim2.new(0, 0, 0, 30 + (i-1)*25),
-                BackgroundColor3 = Color3.fromRGB(70,70,70),
-                Text = choice,
-                TextColor3 = Color3.new(1,1,1),
-                Font = Enum.Font.SourceSans,
-                TextSize = 16,
-                Parent = dropdownFrame
-            })
-            opt.MouseButton1Click:Connect(function()
-                selected = choice
-                button.Text = selected
-                if props.onSelect then props.onSelect(selected) end
-                for _, v in ipairs(dropdownFrame:GetChildren()) do
-                    if v:IsA("TextButton") and v ~= button then v:Destroy() end
-                end
-            end)
+        -- Show/hide option buttons
+        for i, btn in ipairs(optionButtons) do
+            btn.Visible = (optsFrame.Size.Y.Offset >= ((i-0.5)*26))
         end
     end)
 
