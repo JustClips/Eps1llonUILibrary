@@ -73,13 +73,12 @@ function Eps1llonUI:CreateWindow(props)
     local screenGui = createInstance("ScreenGui", {Name = selfWindow.title.."GUI", ResetOnSpawn = false, Parent = game:GetService("CoreGui")})
     local frame = createInstance("Frame", {
         Name = "MainFrame",
-        Size = UDim2.new(0, 450, 0, 450), -- More square/tall
+        Size = UDim2.new(0, 450, 0, 450),
         Position = UDim2.new(0.5, -225, 0.5, -225),
         BackgroundColor3 = Color3.fromRGB(40, 40, 40),
         BorderSizePixel = 0,
         Parent = screenGui
     })
-    -- Less rounded corners
     local mainCorner = Instance.new("UICorner", frame)
     mainCorner.CornerRadius = UDim.new(0, 8)
 
@@ -132,68 +131,59 @@ end
 function Eps1llonUI:AddSlider(props)
     local min, max = props.min or 0, props.max or 100
     local value = props.default or min
-    local outerHeight = 38
-    local outerPad = 32
-    local barHeight = 18
 
-    -- Container background (curved square/rectangle)
+    local containerHeight = 42
+    local containerPad = 36
+    local barHeight = 32
+    local barPadX = 8 -- Padding for the slider bar inside the container
+
+    -- Outer container (background)
     local sliderContainer = createInstance("Frame", {
         Name = "SliderContainer",
-        Size = UDim2.new(1, -outerPad*2, 0, outerHeight + 28),
-        Position = UDim2.new(0, outerPad, 0, self._nextY),
-        BackgroundColor3 = Color3.fromRGB(28,32,45),
+        Size = UDim2.new(1, -containerPad*2, 0, containerHeight),
+        Position = UDim2.new(0, containerPad, 0, self._nextY),
+        BackgroundColor3 = Color3.fromRGB(22, 23, 30),
         BorderSizePixel = 0,
         Parent = self._frame
     })
     local containerCorner = Instance.new("UICorner", sliderContainer)
-    containerCorner.CornerRadius = UDim.new(0, 14)
+    containerCorner.CornerRadius = UDim.new(0, 10)
 
-    -- Value label at start (left) of bar
-    local valueLabel = createInstance("TextLabel", {
-        Size = UDim2.new(0, 44, 0, 22),
-        Position = UDim2.new(0, 13, 0, 9),
-        BackgroundTransparency = 1,
-        Text = tostring(value),
-        TextColor3 = Color3.fromRGB(200, 220, 255),
-        Font = Enum.Font.SourceSansSemibold,
-        TextSize = 17,
-        Parent = sliderContainer,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-
-    -- Slider bar sits inside container centered horizontally
+    -- Center the slider bar inside the container, with equal padding left/right
     local sliderBar = createInstance("Frame", {
-        Position = UDim2.new(0, 62, 0, 9),
-        Size = UDim2.new(1, -80, 0, barHeight),
-        BackgroundColor3 = Color3.fromRGB(70,70,90),
+        Position = UDim2.new(0, barPadX, 0.5, -barHeight/2),
+        Size = UDim2.new(1, -barPadX*2, 0, barHeight),
+        BackgroundColor3 = Color3.fromRGB(54, 61, 76),
         BorderSizePixel = 0,
         Parent = sliderContainer
     })
     local barCorner = Instance.new("UICorner", sliderBar)
-    barCorner.CornerRadius = UDim.new(0, 10)
+    barCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Fill
+    -- Fill (progress)
     local fill = createInstance("Frame", {
         Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new((value-min)/(max-min), 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 145, 255),
         BorderSizePixel = 0,
-        Parent = sliderBar
+        Parent = sliderBar,
+        ClipsDescendants = true
     })
     local fillCorner = Instance.new("UICorner", fill)
-    fillCorner.CornerRadius = UDim.new(0, 10)
+    fillCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Label for slider text, above bar
-    local label = createInstance("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 18),
-        Position = UDim2.new(0, 0, 0, outerHeight-8),
+    -- Value label inside the fill, centered
+    local valueLabel = createInstance("TextLabel", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         BackgroundTransparency = 1,
-        Text = (props.text or "Slider"),
-        TextColor3 = Color3.fromRGB(215, 220, 255),
-        Font = Enum.Font.SourceSansBold,
-        TextSize = 15,
-        Parent = sliderContainer,
-        TextXAlignment = Enum.TextXAlignment.Left
+        Text = tostring(value),
+        TextColor3 = Color3.new(1, 1, 1),
+        Font = Enum.Font.SourceSansSemibold,
+        TextSize = 18,
+        Parent = fill,
+        TextWrapped = true
     })
 
     -- Animate fill
@@ -232,7 +222,7 @@ function Eps1llonUI:AddSlider(props)
         end
     end)
 
-    self._nextY = self._nextY + outerHeight + 38
+    self._nextY = self._nextY + containerHeight + 16
     table.insert(self.elements, sliderContainer)
     return sliderContainer
 end
