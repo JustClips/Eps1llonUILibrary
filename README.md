@@ -1,22 +1,50 @@
 # Eps1llonUILibrary
 
-Eps1llonUILibrary is a UI library for Roblox executors, making it easy to add custom GUIs to your scripts.
+A modular Roblox executor UI library with easy-to-use, scriptable components.
 
 ## Features
-- Window/frame creation
-- Button and label components
-- Simple API for expansion
 
-## Usage Example
+- Window/frame creation (draggable)
+- Button, label, toggle, slider, textbox, dropdown
+- Notification/popup support
+- Simple API — all components are added by method
+- Easy to copy into any script executor
+
+## Example Usage
+
 ```lua
 local Eps1llonUI = require(path.to.Eps1llonUI)
 
-local window = Eps1llonUI:CreateWindow({title = "My Executor"})
-local button = window:AddButton({text = "Run Script", onClick = function()
-    print("Script executed!")
+local win = Eps1llonUI:CreateWindow({title = "My Executor"})
+
+win:AddLabel({text = "Welcome!"})
+
+win:AddButton({text = "Print", onClick = function()
+    print("Button pressed!")
+    win:Notify({text = "Hello, world!"})
 end})
-window:AddLabel({text = "Welcome to Eps1llon!"})
+
+win:AddToggle({text = "Enable Stuff", default = false, onToggle = function(val)
+    print("Toggled:", val)
+end})
+
+win:AddSlider({text = "Volume", min = 0, max = 100, default = 50, onChange = function(val)
+    print("Slider:", val)
+end})
+
+win:AddTextbox({placeholder = "Type here", onEnter = function(txt)
+    print("You typed:", txt)
+end})
+
+win:AddDropdown({choices = {"A", "B", "C"}, default = "B", onSelect = function(val)
+    print("Dropdown picked:", val)
+end})
 ```
 
+---
+
 ## Getting Started
-Copy the library from `src/Eps1llonUI.lua` into your Roblox executor environment and use as shown above.
+
+- Copy `src/Eps1llonUI.lua` into your executor’s workspace.
+- `require` it as shown above.
+- All UI is self-contained and easy to extend.
