@@ -17,7 +17,6 @@ local function lerp(a, b, t)
     return a + (b - a) * t
 end
 
--- Full window drag
 local function makeDraggable(frame)
     local dragging, dragInput, startPos, startFramePos
     local targetPos = frame.Position
@@ -73,10 +72,12 @@ function Eps1llonUI:CreateWindow(props)
     }, {__index = self})
 
     local screenGui = createInstance("ScreenGui", {Name = selfWindow.title.."GUI", ResetOnSpawn = false, Parent = game:GetService("CoreGui")})
+
+    -- Wider and a bit shorter window
     local frame = createInstance("Frame", {
         Name = "MainFrame",
-        Size = UDim2.new(0, 450, 0, 490),
-        Position = UDim2.new(0.5, -225, 0.5, -245),
+        Size = UDim2.new(0, 540, 0, 340), -- Wider, shorter
+        Position = UDim2.new(0.5, -270, 0.5, -170),
         BackgroundColor3 = Color3.fromRGB(40, 40, 40),
         BorderSizePixel = 0,
         Parent = screenGui
@@ -105,6 +106,7 @@ function Eps1llonUI:CreateWindow(props)
         Parent = topBar
     })
 
+    -- Make the entire window draggable
     makeDraggable(frame)
 
     selfWindow._nextY = 54
@@ -246,7 +248,6 @@ end
 function Eps1llonUI:AddToggle(props)
     local containerHeight = (props.barHeight or 32) + 10
     local customWidth = tonumber(props.width or 64)
-
     local toggleContainer = createInstance("Frame", {
         Name = "ToggleContainer",
         Size = UDim2.new(0, customWidth, 0, containerHeight),
@@ -255,7 +256,6 @@ function Eps1llonUI:AddToggle(props)
         BorderSizePixel = 0,
         Parent = self._frame
     })
-
     local barHeight = props.barHeight or 32
     local toggleBar = createInstance("Frame", {
         Name = "ToggleBar",
@@ -267,7 +267,6 @@ function Eps1llonUI:AddToggle(props)
     })
     local barCorner = Instance.new("UICorner", toggleBar)
     barCorner.CornerRadius = UDim.new(1, 0)
-
     local knobSize = barHeight - 6
     local knob = createInstance("Frame", {
         Name = "ToggleKnob",
@@ -279,7 +278,6 @@ function Eps1llonUI:AddToggle(props)
     })
     local knobCorner = Instance.new("UICorner", knob)
     knobCorner.CornerRadius = UDim.new(1, 0)
-
     local state = props.default and true or false
     local function updateToggle()
         if state then
@@ -293,7 +291,6 @@ function Eps1llonUI:AddToggle(props)
         end
     end
     updateToggle()
-
     toggleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             state = not state
@@ -312,7 +309,6 @@ function Eps1llonUI:AddToggle(props)
             end
         end
     end)
-
     self._nextY = self._nextY + containerHeight + 10
     table.insert(self.elements, toggleContainer)
     return toggleContainer
@@ -350,11 +346,9 @@ function Eps1llonUI:AddInput(props)
     local inputCorner = Instance.new("UICorner", input)
     inputCorner.CornerRadius = UDim.new(0, 8)
 
-    input.Focused:Connect(function()
-        TweenService:Create(input, TweenInfo.new(0.18), {BackgroundColor3 = Color3.fromRGB(0, 145, 255)}):Play()
-    end)
+    -- NO animation on focus: always same color
+
     input.FocusLost:Connect(function(enter)
-        TweenService:Create(input, TweenInfo.new(0.18), {BackgroundColor3 = Color3.fromRGB(46, 51, 70)}):Play()
         if props.onChange then
             props.onChange(input.Text, enter)
         end
@@ -374,7 +368,6 @@ function Eps1llonUI:AddDropdown(props)
     local options = props.options or {}
     local boxWidth = tonumber(props.width) or 220
     local boxHeight = 36
-
     local boxFrame = createInstance("Frame", {
         Name = "DropdownContainer",
         Size = UDim2.new(0, boxWidth, 0, boxHeight),
@@ -386,7 +379,6 @@ function Eps1llonUI:AddDropdown(props)
     })
     local boxCorner = Instance.new("UICorner", boxFrame)
     boxCorner.CornerRadius = UDim.new(0, 10)
-
     local selected = props.default or (options[1] or "")
     local dropdown = createInstance("TextButton", {
         Name = "DropdownButton",
@@ -399,7 +391,6 @@ function Eps1llonUI:AddDropdown(props)
         Parent = boxFrame,
         AutoButtonColor = false
     })
-
     local arrow = createInstance("TextLabel", {
         Size = UDim2.new(0, 22, 0, boxHeight),
         Position = UDim2.new(1, -28, 0, 0),
@@ -410,7 +401,6 @@ function Eps1llonUI:AddDropdown(props)
         TextSize = 16,
         Parent = boxFrame
     })
-
     local listFrame = createInstance("Frame", {
         Name = "DropdownList",
         Size = UDim2.new(1, 0, 0, 0),
@@ -422,13 +412,10 @@ function Eps1llonUI:AddDropdown(props)
     })
     local listCorner = Instance.new("UICorner", listFrame)
     listCorner.CornerRadius = UDim.new(0, 10)
-
     local layout = Instance.new("UIListLayout", listFrame)
     layout.Padding = UDim.new(0, 0)
-
     local open = false
     local buttonHeight = 32
-
     local function toggleDropdown()
         open = not open
         if open then
@@ -441,9 +428,7 @@ function Eps1llonUI:AddDropdown(props)
             TweenService:Create(arrow, TweenInfo.new(0.18), {Rotation = 0}):Play()
         end
     end
-
     dropdown.MouseButton1Click:Connect(toggleDropdown)
-
     for i, option in ipairs(options) do
         local btn = createInstance("TextButton", {
             Size = UDim2.new(1, 0, 0, buttonHeight),
@@ -464,7 +449,6 @@ function Eps1llonUI:AddDropdown(props)
             end
         end)
     end
-
     self._nextY = self._nextY + boxHeight + 18
     table.insert(self.elements, boxFrame)
     return boxFrame
