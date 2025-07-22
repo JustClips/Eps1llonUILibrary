@@ -128,26 +128,37 @@ function Eps1llonUI:AddLabel(props)
     return label
 end
 
+-- AddSlider(props)
+-- props: min, max, default, width, barHeight, onChange
+-- If width is set, the slider is that wide (in px), else fills most of window
+-- If barHeight is set, the slider bar is that tall (in px), else default (32)
 function Eps1llonUI:AddSlider(props)
     local min, max = props.min or 0, props.max or 100
     local value = props.default or min
 
     local containerHeight = 42
     local containerPad = 36
-    local barHeight = 32
-    local barPadX = 8 -- Padding for the slider bar inside the container
+    local defaultBarHeight = 32
+    local barPadX = 8
 
-    -- Outer container (background)
+    local customWidth = tonumber(props.width)
+    local barHeight = tonumber(props.barHeight) or defaultBarHeight
+
+    -- Container for slider and (optionally) a label on the left
+    -- If customWidth: center the box in the window, else fill
     local sliderContainer = createInstance("Frame", {
         Name = "SliderContainer",
-        Size = UDim2.new(1, -containerPad*2, 0, containerHeight),
-        Position = UDim2.new(0, containerPad, 0, self._nextY),
+        Size = customWidth and UDim2.new(0, customWidth, 0, containerHeight) or UDim2.new(1, -containerPad*2, 0, containerHeight),
+        Position = customWidth and UDim2.new(0.5, -customWidth/2, 0, self._nextY)
+                  or UDim2.new(0, containerPad, 0, self._nextY),
         BackgroundColor3 = Color3.fromRGB(22, 23, 30),
         BorderSizePixel = 0,
         Parent = self._frame
     })
     local containerCorner = Instance.new("UICorner", sliderContainer)
     containerCorner.CornerRadius = UDim.new(0, 10)
+
+    -- If the user wants to add label text to the left, they can add it themselves using AddLabel or add a TextLabel as child of sliderContainer
 
     -- Center the slider bar inside the container, with equal padding left/right
     local sliderBar = createInstance("Frame", {
