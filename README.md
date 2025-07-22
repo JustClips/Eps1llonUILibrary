@@ -4,8 +4,8 @@ A modern, animated UI library for Roblox executors with a clean, outlined design
 
 ## Features
 
-- Draggable window (smooth animation)
-- Rayfield-style slider (full fill, no knob, smooth)
+- Draggable window (smooth, rounded, movable)
+- Rayfield-style slider (large, pill-shaped, smooth fill, no knob)
 - Easy-to-use API for scripts
 
 ## Example Usage
@@ -15,7 +15,7 @@ local Eps1llonUI = require(path.to.Eps1llonUI)
 
 local win = Eps1llonUI:CreateWindow({title = "Eps1llon Hub"})
 
-win:AddLabel({text = "Rayfield-Style Slider Demo"})
+win:AddLabel({text = "Rayfield-Style Slider (Rounded, Large)"})
 
 win:AddSlider({
     text = "Volume",
