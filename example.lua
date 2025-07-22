@@ -2,7 +2,7 @@ local Eps1llonUI = require("src.Eps1llonUI")
 
 local win = Eps1llonUI:CreateWindow({title = "Eps1llon Hub"})
 
-win:AddLabel({text = "Welcome to Eps1llonUILibrary!"})
+win:AddLabel({text = "Rayfield-Style Slider Demo"})
 
 win:AddSlider({
     text = "Volume",
@@ -11,14 +11,5 @@ win:AddSlider({
     default = 50,
     onChange = function(val)
         print("Slider:", val)
-    end
-})
-
-win:AddDropdown({
-    text = "Theme",
-    choices = {"Blue", "Red", "Green"},
-    default = "Blue",
-    onSelect = function(val)
-        print("Theme selected:", val)
     end
 })
