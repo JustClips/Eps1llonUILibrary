@@ -2,7 +2,7 @@ local Eps1llonUI = require("src.Eps1llonUI")
 
 local win = Eps1llonUI:CreateWindow({title = "Eps1llon Hub"})
 
-win:AddLabel({text = "Rayfield-Style Slider (Rounded, Large)"})
+win:AddLabel({text = "Square Window, Curved Slider"})
 
 win:AddSlider({
     text = "Volume",
