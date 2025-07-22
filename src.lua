@@ -129,9 +129,11 @@ function Eps1llonUI:AddLabel(props)
 end
 
 -- AddSlider(props)
--- props: min, max, default, width, barHeight, onChange
+-- props: min, max, default, width, barHeight, valueFont, labelFont, onChange
 -- If width is set, the slider is that wide (in px), else fills most of window
 -- If barHeight is set, the slider bar is that tall (in px), else default (32)
+-- valueFont is font for the value (left side in slider bar)
+-- labelFont is font for the label left of slider bar (optional)
 function Eps1llonUI:AddSlider(props)
     local min, max = props.min or 0, props.max or 100
     local value = props.default or min
@@ -145,7 +147,6 @@ function Eps1llonUI:AddSlider(props)
     local barHeight = tonumber(props.barHeight) or defaultBarHeight
 
     -- Container for slider and (optionally) a label on the left
-    -- If customWidth: center the box in the window, else fill
     local sliderContainer = createInstance("Frame", {
         Name = "SliderContainer",
         Size = customWidth and UDim2.new(0, customWidth, 0, containerHeight) or UDim2.new(1, -containerPad*2, 0, containerHeight),
@@ -158,12 +159,27 @@ function Eps1llonUI:AddSlider(props)
     local containerCorner = Instance.new("UICorner", sliderContainer)
     containerCorner.CornerRadius = UDim.new(0, 10)
 
-    -- If the user wants to add label text to the left, they can add it themselves using AddLabel or add a TextLabel as child of sliderContainer
+    -- Label on the left (optional)
+    if props.leftLabel then
+        local leftLabel = createInstance("TextLabel", {
+            Name = "LeftLabel",
+            Size = UDim2.new(0, 66, 1, 0),
+            Position = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1,
+            Text = props.leftLabel,
+            TextColor3 = Color3.fromRGB(210, 220, 255),
+            Font = props.labelFont or Enum.Font.SourceSansBold,
+            TextSize = 15,
+            Parent = sliderContainer,
+            TextXAlignment = Enum.TextXAlignment.Left
+        })
+    end
 
-    -- Center the slider bar inside the container, with equal padding left/right
+    -- The slider bar inside the container, with space on left for value
+    local valueBoxWidth = 54
     local sliderBar = createInstance("Frame", {
-        Position = UDim2.new(0, barPadX, 0.5, -barHeight/2),
-        Size = UDim2.new(1, -barPadX*2, 0, barHeight),
+        Position = UDim2.new(0, barPadX + valueBoxWidth, 0.5, -barHeight/2),
+        Size = UDim2.new(1, -(barPadX*2 + valueBoxWidth), 0, barHeight),
         BackgroundColor3 = Color3.fromRGB(54, 61, 76),
         BorderSizePixel = 0,
         Parent = sliderContainer
@@ -183,18 +199,18 @@ function Eps1llonUI:AddSlider(props)
     local fillCorner = Instance.new("UICorner", fill)
     fillCorner.CornerRadius = UDim.new(0, 8)
 
-    -- Value label inside the fill, centered
+    -- Value label at the left of the slider bar, always visible, fixed position
     local valueLabel = createInstance("TextLabel", {
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Name = "SliderValue",
+        Size = UDim2.new(0, valueBoxWidth, 1, 0),
+        Position = UDim2.new(0, barPadX, 0, 0),
         BackgroundTransparency = 1,
         Text = tostring(value),
-        TextColor3 = Color3.new(1, 1, 1),
-        Font = Enum.Font.SourceSansSemibold,
+        TextColor3 = Color3.fromRGB(230, 240, 255),
+        Font = props.valueFont or Enum.Font.SourceSansSemibold,
         TextSize = 18,
-        Parent = fill,
-        TextWrapped = true
+        Parent = sliderContainer,
+        TextXAlignment = Enum.TextXAlignment.Center
     })
 
     -- Animate fill
@@ -236,6 +252,88 @@ function Eps1llonUI:AddSlider(props)
     self._nextY = self._nextY + containerHeight + 16
     table.insert(self.elements, sliderContainer)
     return sliderContainer
+end
+
+-- AddToggle({default, onChange, width, barHeight})
+-- Toggle: pill background, circle knob, supports callback
+function Eps1llonUI:AddToggle(props)
+    local containerHeight = (props.barHeight or 32) + 10
+    local containerPad = 36
+    local customWidth = tonumber(props.width or 64)
+
+    -- Container for toggle (centered)
+    local toggleContainer = createInstance("Frame", {
+        Name = "ToggleContainer",
+        Size = UDim2.new(0, customWidth, 0, containerHeight),
+        Position = UDim2.new(0.5, -customWidth/2, 0, self._nextY),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Parent = self._frame
+    })
+
+    -- Toggle background (pill)
+    local barHeight = props.barHeight or 32
+    local toggleBar = createInstance("Frame", {
+        Name = "ToggleBar",
+        Size = UDim2.new(0, customWidth, 0, barHeight),
+        Position = UDim2.new(0, 0, 0.5, -barHeight/2),
+        BackgroundColor3 = Color3.fromRGB(38, 39, 45),
+        BorderSizePixel = 0,
+        Parent = toggleContainer
+    })
+    local barCorner = Instance.new("UICorner", toggleBar)
+    barCorner.CornerRadius = UDim.new(1, 0)
+
+    -- Knob
+    local knobSize = barHeight - 6
+    local knob = createInstance("Frame", {
+        Name = "ToggleKnob",
+        Size = UDim2.new(0, knobSize, 0, knobSize),
+        Position = UDim2.new(0, 3, 0.5, -knobSize/2),
+        BackgroundColor3 = Color3.fromRGB(82, 82, 82),
+        BorderSizePixel = 0,
+        Parent = toggleBar
+    })
+    local knobCorner = Instance.new("UICorner", knob)
+    knobCorner.CornerRadius = UDim.new(1, 0)
+
+    -- State
+    local state = props.default and true or false
+    local function updateToggle()
+        if state then
+            knob:TweenPosition(UDim2.new(1, -knobSize-3, 0.5, -knobSize/2), "Out", "Quad", 0.15, true)
+            toggleBar.BackgroundColor3 = Color3.fromRGB(0, 145, 255)
+            knob.BackgroundColor3 = Color3.fromRGB(210, 210, 210)
+        else
+            knob:TweenPosition(UDim2.new(0, 3, 0.5, -knobSize/2), "Out", "Quad", 0.15, true)
+            toggleBar.BackgroundColor3 = Color3.fromRGB(38, 39, 45)
+            knob.BackgroundColor3 = Color3.fromRGB(82, 82, 82)
+        end
+    end
+    updateToggle()
+
+    toggleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            state = not state
+            updateToggle()
+            if props.onChange then
+                props.onChange(state)
+            end
+        end
+    end)
+    knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            state = not state
+            updateToggle()
+            if props.onChange then
+                props.onChange(state)
+            end
+        end
+    end)
+
+    self._nextY = self._nextY + containerHeight + 10
+    table.insert(self.elements, toggleContainer)
+    return toggleContainer
 end
 
 return setmetatable({}, Eps1llonUI)
